@@ -2319,15 +2319,8 @@ impl<'a> Collector<'a> {
         );
     }
 
-    /// #577 C9 — a call to a top-level `fn` must pass exactly as many
-    /// arguments as the declaration has parameters. Go refuses the emitted
-    /// call otherwise (`not enough arguments` / `too many arguments`), so an
-    /// accepted program would not build (Row 13).
-    ///
-    /// Only fires for a bare identifier that resolves to a declared `fn`.
-    /// A name bound to a local (including a fn-typed variable or closure) is
-    /// skipped by the caller — the local's arity is not tracked here — and a
-    /// builtin never reaches this point because builtins are not in `fns`.
+    /// Validate a function value's known parameter count, including tuple
+    /// forwarding, independently of the syntax used to obtain the callee.
     fn check_function_value_arity(
         &mut self,
         name: &str,
@@ -2343,6 +2336,15 @@ impl<'a> Collector<'a> {
         }
     }
 
+    /// #577 C9 — a call to a top-level `fn` must pass exactly as many
+    /// arguments as the declaration has parameters. Go refuses the emitted
+    /// call otherwise (`not enough arguments` / `too many arguments`), so an
+    /// accepted program would not build (Row 13).
+    ///
+    /// Only fires for a bare identifier that resolves to a declared `fn`.
+    /// A name bound to a local (including a fn-typed variable or closure) is
+    /// skipped by the caller — the local's arity is not tracked here — and a
+    /// builtin never reaches this point because builtins are not in `fns`.
     fn check_user_fn_arity(&mut self, name: &str, args: &[CallArg], span: Span) {
         let head = Checker::base_named_type_str(name);
         let Some(f) = self.ck.fns.get(name).or_else(|| self.ck.fns.get(head)) else {
