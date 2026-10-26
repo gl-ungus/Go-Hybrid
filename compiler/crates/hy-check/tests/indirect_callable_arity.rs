@@ -30,9 +30,7 @@ fn indexed_functions_reject_wrong_argument_counts() {
         ("map[string]fn(int) int", "fs[\"f\"]()"),
         ("map[string]fn(int) int", "(fs[\"f\"])(1, 2)"),
     ] {
-        let source = format!(
-            "fn apply(fs {ty}) int {{\n return {call}\n}}\nfn main() {{}}\n"
-        );
+        let source = format!("fn apply(fs {ty}) int {{\n return {call}\n}}\nfn main() {{}}\n");
         assert_eq!(diagnostics(&source), ["HYB-E1002"], "{source}");
     }
 }
@@ -60,7 +58,18 @@ fn tuple_forwarding_to_function_values_remains_accepted() {
     for source in [
         "fn pair() (int, int) { return 1, 2 }\nstruct holder { f fn(int, int) int }\nfn apply(h holder) int {\n return h.f(pair())\n}\nfn main() {}\n",
         "fn pair() (int, int) { return 1, 2 }\nfn apply(fs []fn(int, int) int) int {\n return fs[0](pair())\n}\nfn main() {}\n",
+        "fn pair() (int, int) { return 1, 2 }\nfn apply(f fn(int, int) int) int {\n return f(pair())\n}\nfn main() {}\n",
     ] {
         assert!(diagnostics(source).is_empty(), "{source}");
+    }
+}
+
+#[test]
+fn wrong_sized_forwarded_tuples_are_rejected() {
+    for source in [
+        "fn pair() (int, int) { return 1, 2 }\nstruct holder { f fn(int, int, int) int }\nfn apply(h holder) int {\n return h.f(pair())\n}\nfn main() {}\n",
+        "fn pair() (int, int) { return 1, 2 }\nfn apply(fs []fn(int, int, int) int) int {\n return fs[0](pair())\n}\nfn main() {}\n",
+    ] {
+        assert_eq!(diagnostics(source), ["HYB-E1002"], "{source}");
     }
 }
